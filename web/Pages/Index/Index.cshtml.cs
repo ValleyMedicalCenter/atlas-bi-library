@@ -12,6 +12,8 @@ namespace Atlas_Web.Pages
         public IndexModel(Atlas_WebContext context)
         {
             _context = context;
+
+
         }
 
         public class BasicFavoriteData

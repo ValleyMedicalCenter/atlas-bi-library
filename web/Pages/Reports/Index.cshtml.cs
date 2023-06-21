@@ -15,6 +15,8 @@ namespace Atlas_Web.Pages.Reports
         {
             _context = context;
             _cache = cache;
+
+
         }
 
         public class MaintStatus

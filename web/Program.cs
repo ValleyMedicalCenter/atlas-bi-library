@@ -331,7 +331,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapRazorPages();
-app.MapControllers();
 
 app.UseResponseCaching();
 app.Use(

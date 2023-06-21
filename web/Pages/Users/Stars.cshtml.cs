@@ -393,45 +393,45 @@ namespace Atlas_Web.Pages.Users
                 int id = Int32.Parse(l.FavoriteId);
                 if (l.FavoriteType == "report")
                 {
-                    _context.StarredReports
-                        .Single(x => x.StarId == id && x.Ownerid == User.GetUserId())
-                        .Rank = l.FavoriteRank;
+                    _context.StarredReports.Single(
+                        x => x.StarId == id && x.Ownerid == User.GetUserId()
+                    ).Rank = l.FavoriteRank;
                 }
                 else if (l.FavoriteType == "collection")
                 {
-                    _context.StarredCollections
-                        .Single(x => x.StarId == id && x.Ownerid == User.GetUserId())
-                        .Rank = l.FavoriteRank;
+                    _context.StarredCollections.Single(
+                        x => x.StarId == id && x.Ownerid == User.GetUserId()
+                    ).Rank = l.FavoriteRank;
                 }
                 else if (l.FavoriteType == "initiative")
                 {
-                    _context.StarredInitiatives
-                        .Single(x => x.StarId == id && x.Ownerid == User.GetUserId())
-                        .Rank = l.FavoriteRank;
+                    _context.StarredInitiatives.Single(
+                        x => x.StarId == id && x.Ownerid == User.GetUserId()
+                    ).Rank = l.FavoriteRank;
                 }
                 else if (l.FavoriteType == "term")
                 {
-                    _context.StarredTerms
-                        .Single(x => x.StarId == id && x.Ownerid == User.GetUserId())
-                        .Rank = l.FavoriteRank;
+                    _context.StarredTerms.Single(
+                        x => x.StarId == id && x.Ownerid == User.GetUserId()
+                    ).Rank = l.FavoriteRank;
                 }
                 else if (l.FavoriteType == "user")
                 {
-                    _context.StarredUsers
-                        .Single(x => x.StarId == id && x.Ownerid == User.GetUserId())
-                        .Rank = l.FavoriteRank;
+                    _context.StarredUsers.Single(
+                        x => x.StarId == id && x.Ownerid == User.GetUserId()
+                    ).Rank = l.FavoriteRank;
                 }
                 else if (l.FavoriteType == "group")
                 {
-                    _context.StarredGroups
-                        .Single(x => x.StarId == id && x.Ownerid == User.GetUserId())
-                        .Rank = l.FavoriteRank;
+                    _context.StarredGroups.Single(
+                        x => x.StarId == id && x.Ownerid == User.GetUserId()
+                    ).Rank = l.FavoriteRank;
                 }
                 else if (l.FavoriteType == "search")
                 {
-                    _context.StarredSearches
-                        .Single(x => x.StarId == id && x.Ownerid == User.GetUserId())
-                        .Rank = l.FavoriteRank;
+                    _context.StarredSearches.Single(
+                        x => x.StarId == id && x.Ownerid == User.GetUserId()
+                    ).Rank = l.FavoriteRank;
                 }
             }
             _context.SaveChanges();

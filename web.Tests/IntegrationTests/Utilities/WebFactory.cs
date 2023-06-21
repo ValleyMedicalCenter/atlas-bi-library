@@ -20,8 +20,8 @@ namespace web.Tests.IntegrationTests
                     d => d.ServiceType == typeof(DbContextOptions<Atlas_WebContext>)
                 );
 
-                if (descriptor != null)
-                    services.Remove(descriptor);
+                    if (descriptor != null)
+                        services.Remove(descriptor);
 
                 services.AddDbContext<Atlas_WebContext>(options =>
                 {
