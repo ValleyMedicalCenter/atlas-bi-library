@@ -185,10 +185,8 @@ public class BrowserFixture
         OpenQA.Selenium.Chrome.ChromeOptions chromeCapabilityDefault =
             new OpenQA.Selenium.Chrome.ChromeOptions();
         chromeCapabilityDefault.BrowserVersion = Options.BrowserVersion;
-        Dictionary<string, object> browserstackChromeOptionsDefault = new Dictionary<
-            string,
-            object
-        >();
+        Dictionary<string, object> browserstackChromeOptionsDefault =
+            new Dictionary<string, object>();
         browserstackChromeOptionsDefault.Add("os", Options.OperatingSystem);
         browserstackChromeOptionsDefault.Add("osVersion", Options.OperatingSystemVersion);
         browserstackChromeOptionsDefault.Add("local", "true");

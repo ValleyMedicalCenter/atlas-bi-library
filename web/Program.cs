@@ -257,8 +257,10 @@ if (builder.Configuration.GetSection("Saml2").Exists())
                 }
                 if (entityDescriptor.IdPSsoDescriptor.WantAuthnRequestsSigned.HasValue)
                 {
-                    saml2Configuration.SignAuthnRequest =
-                        entityDescriptor.IdPSsoDescriptor.WantAuthnRequestsSigned.Value;
+                    saml2Configuration.SignAuthnRequest = entityDescriptor
+                        .IdPSsoDescriptor
+                        .WantAuthnRequestsSigned
+                        .Value;
                 }
             }
             else

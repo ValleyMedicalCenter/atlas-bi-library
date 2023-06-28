@@ -86,8 +86,10 @@ namespace web.Tests.BrowserTests
             _host.Start();
 
             // Store base address so that tests can pass it to the browser.
-            var address =
-                _host?.Services?.GetRequiredService<IServer>()?.Features.Get<IServerAddressesFeature>()?.Addresses.First();
+            var address = _host
+                ?.Services?.GetRequiredService<IServer>()
+                ?.Features.Get<IServerAddressesFeature>()
+                ?.Addresses.First();
 
             if (address != null)
             {
