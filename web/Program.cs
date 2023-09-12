@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Atlas_Web.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
-using Microsoft.AspNetCore.Identity;
 using System.IO.Compression;
 using WebMarkupMin.AspNet.Common.Compressors;
 using WebMarkupMin.AspNetCore5;
@@ -11,7 +10,6 @@ using Microsoft.Extensions.Caching.Memory;
 using Atlas_Web.Middleware;
 using Atlas_Web.Services;
 using Hangfire;
-using Hangfire.InMemory;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Negotiate;
 using Microsoft.AspNetCore.Authorization;
@@ -50,14 +48,12 @@ builder.Services.AddHangfire(
 
 builder.Services.AddHangfireServer();
 
-builder.Services.Configure<CookiePolicyOptions>(
-    options =>
-    {
-        // This lambda determines whether user consent for non-essential cookies is needed for a given request.
-        options.CheckConsentNeeded = context => true;
-        options.MinimumSameSitePolicy = Microsoft.AspNetCore.Http.SameSiteMode.None;
-    }
-);
+builder.Services.Configure<CookiePolicyOptions>(options =>
+{
+    // This lambda determines whether user consent for non-essential cookies is needed for a given request.
+    options.CheckConsentNeeded = context => true;
+    options.MinimumSameSitePolicy = Microsoft.AspNetCore.Http.SameSiteMode.None;
+});
 builder.Services.AddResponseCaching();
 
 // for linq queries
@@ -72,27 +68,25 @@ builder.Services.AddDbContext<Atlas_WebContext>(
 
 builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
 
-builder.Services.AddResponseCompression(
-    options =>
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.MimeTypes = new[]
     {
-        options.EnableForHttps = true;
-        options.MimeTypes = new[]
-        {
-            "text/plain",
-            "text/html",
-            "application/xml",
-            "text/xml",
-            "application/json",
-            "text/json",
-            "font/woff2",
-            "application/json; charset = UTF - 8",
-            "text/css",
-            "text/js",
-            "application/css",
-            "application/javascript"
-        };
-    }
-);
+        "text/plain",
+        "text/html",
+        "application/xml",
+        "text/xml",
+        "application/json",
+        "text/json",
+        "font/woff2",
+        "application/json; charset = UTF - 8",
+        "text/css",
+        "text/js",
+        "application/css",
+        "application/javascript"
+    };
+});
 
 builder.Services.AddMemoryCache();
 
@@ -173,41 +167,36 @@ builder.Services.AddWebOptimizer(
 );
 
 builder.Services
-    .AddWebMarkupMin(
-        options =>
+    .AddWebMarkupMin(options =>
+    {
+        options.AllowMinificationInDevelopmentEnvironment = true;
+        options.AllowCompressionInDevelopmentEnvironment = true;
+    })
+    .AddHtmlMinification(options =>
+    {
+        options.MinificationSettings.RemoveRedundantAttributes = true;
+        options.MinificationSettings.RemoveHttpProtocolFromAttributes = true;
+        options.MinificationSettings.RemoveHttpsProtocolFromAttributes = true;
+    })
+    .AddHttpCompression(options =>
+    {
+        options.CompressorFactories = new List<ICompressorFactory>
         {
-            options.AllowMinificationInDevelopmentEnvironment = true;
-            options.AllowCompressionInDevelopmentEnvironment = true;
-        }
-    )
-    .AddHtmlMinification(
-        options =>
-        {
-            options.MinificationSettings.RemoveRedundantAttributes = true;
-            options.MinificationSettings.RemoveHttpProtocolFromAttributes = true;
-            options.MinificationSettings.RemoveHttpsProtocolFromAttributes = true;
-        }
-    )
-    .AddHttpCompression(
-        options =>
-        {
-            options.CompressorFactories = new List<ICompressorFactory>
-            {
-                new DeflateCompressorFactory(
-                    new DeflateCompressionSettings { Level = CompressionLevel.Fastest }
-                ),
-                new GZipCompressorFactory(
-                    new GZipCompressionSettings { Level = CompressionLevel.Fastest }
-                )
-            };
-        }
-    );
+            new DeflateCompressorFactory(
+                new DeflateCompressionSettings { Level = CompressionLevel.Fastest }
+            ),
+            new GZipCompressorFactory(
+                new GZipCompressionSettings { Level = CompressionLevel.Fastest }
+            )
+        };
+    });
 
 builder.Services.AddTransient<IEmailService, EmailService>();
 builder.Services.AddTransient<IRazorPartialToStringRenderer, RazorPartialToStringRenderer>();
 
 if (builder.Configuration["Demo"] == "True")
 {
+# pragma warning disable S1116
     builder.Services
         .AddAuthentication(options => options.DefaultScheme = "Demo")
         .AddScheme<DemoSchemeOptions, DemoAuthHandler>("Demo", options => { });
@@ -234,27 +223,72 @@ if (builder.Configuration.GetSection("Saml2").Exists())
                 X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.PersistKeySet
             );
 
-builder.Services.AddAuthorization(
-    options =>
-    {
-        options.FallbackPolicy = new AuthorizationPolicyBuilder()
-            .RequireAuthenticatedUser()
-            .Build();
-        options.AddPolicy(
-            "ReportRunPolicy",
-            policy => policy.Requirements.Add(new PermissionRequirement())
-        );
-    }
-);
+            //saml2Configuration.SignatureValidationCertificates.Add(CertificateUtil.Load(AppEnvironment.MapToPhysicalFilePath(Configuration["Saml2:SignatureValidationCertificateFile"])));
+            saml2Configuration.AllowedAudienceUris.Add(saml2Configuration.Issuer);
+
+            var httpClientFactory = serviceProvider.GetService<IHttpClientFactory>();
+            var entityDescriptor = new EntityDescriptor();
+            entityDescriptor
+                .ReadIdPSsoDescriptorFromUrlAsync(
+                    httpClientFactory,
+                    new Uri(builder.Configuration["Saml2:IdPMetadata"])
+                )
+                .GetAwaiter()
+                .GetResult();
+            if (entityDescriptor.IdPSsoDescriptor != null)
+            {
+                saml2Configuration.AllowedIssuer = entityDescriptor.EntityId;
+                saml2Configuration.SingleSignOnDestination =
+                    entityDescriptor.IdPSsoDescriptor.SingleSignOnServices.First().Location;
+                // saml2Configuration.SingleLogoutDestination = entityDescriptor.IdPSsoDescriptor.SingleLogoutServices.First().Location;
+                foreach (
+                    var signingCertificate in entityDescriptor.IdPSsoDescriptor.SigningCertificates
+                )
+                {
+                    if (signingCertificate.IsValidLocalTime())
+                    {
+                        saml2Configuration.SignatureValidationCertificates.Add(signingCertificate);
+                    }
+                }
+                if (saml2Configuration.SignatureValidationCertificates.Count <= 0)
+                {
+                    throw new Exception("The IdP signing certificates has expired.");
+                }
+                if (entityDescriptor.IdPSsoDescriptor.WantAuthnRequestsSigned.HasValue)
+                {
+                    saml2Configuration.SignAuthnRequest = entityDescriptor
+                        .IdPSsoDescriptor
+                        .WantAuthnRequestsSigned
+                        .Value;
+                }
+            }
+            else
+            {
+                throw new Exception("IdPSsoDescriptor not loaded from metadata.");
+            }
+
+            return saml2Configuration;
+        }
+    );
+
+    builder.Services.AddSaml2(slidingExpiration: true);
+}
+
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
+    options.AddPolicy(
+        "ReportRunPolicy",
+        policy => policy.Requirements.Add(new PermissionRequirement())
+    );
+});
 builder.Services.AddSingleton<IAuthorizationHandler, ReportRunAuthorizationHandler>();
 builder.Services.AddScoped<IClaimsTransformation, CustomClaimsTransformer>();
 
-builder.Services.Configure<IISServerOptions>(
-    options =>
-    {
-        options.AllowSynchronousIO = true;
-    }
-);
+builder.Services.Configure<IISServerOptions>(options =>
+{
+    options.AllowSynchronousIO = true;
+});
 
 builder.Services
     .AddRazorPages()
@@ -276,8 +310,6 @@ app.UseResponseCompression();
 if (!app.Environment.IsDevelopment())
 {
     app.UseHsts();
-
-    // app.UseHttpsRedirection();
     app.UseStatusCodePagesWithReExecute("/Error", "?id={0}");
     app.UseExceptionHandler("/Error");
 }
@@ -310,17 +342,13 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.UseEndpoints(
-    endpoints =>
-    {
-        endpoints.MapRazorPages();
-    }
-);
+app.MapRazorPages();
+app.MapControllers();
 
 app.Use(
     async (context, next) =>
     {
-        context.Response.Headers.Add("Content-Security-Policy", "frame-ancestors 'self' '*';");
+        context.Response.Headers.Add("Content-Security-Policy", "frame-ancestors 'self' *;");
         await next();
     }
 );
@@ -385,4 +413,5 @@ using (var scope = app.Services.CreateScope())
 
 app.Run();
 
+# pragma warning disable S1118
 public partial class Program { }
