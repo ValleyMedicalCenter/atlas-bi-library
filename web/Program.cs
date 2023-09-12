@@ -17,6 +17,15 @@ using Microsoft.AspNetCore.Authentication.Negotiate;
 using Microsoft.AspNetCore.Authorization;
 using Atlas_Web.Authorization;
 using Atlas_Web.Authentication;
+using ITfoxtec.Identity.Saml2;
+using ITfoxtec.Identity.Saml2.Util;
+using ITfoxtec.Identity.Saml2.Schemas.Metadata;
+using ITfoxtec.Identity.Saml2.MvcCore.Configuration;
+using ITfoxtec.Identity.Saml2.MvcCore;
+using System.Security.Cryptography.X509Certificates;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel;
+using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.cust.json", optional: true, reloadOnChange: true);
@@ -50,21 +59,6 @@ builder.Services.Configure<CookiePolicyOptions>(
     }
 );
 builder.Services.AddResponseCaching();
-
-builder.Services
-    .AddRazorPages()
-    .AddRazorPagesOptions(
-        options =>
-        {
-            options.Conventions.AddPageRoute("/Index/Index", "");
-            options.Conventions.AddPageRoute("/Index/About", "about_analytics");
-            options.Conventions.ConfigureFilter(new IgnoreAntiforgeryTokenAttribute());
-        }
-    )
-    .AddRazorRuntimeCompilation();
-
-builder.Services.AddSolrNet<SolrAtlas>(builder.Configuration["solr:atlas_address"]);
-builder.Services.AddSolrNet<SolrAtlasLookups>(builder.Configuration["solr:atlas_lookups_address"]);
 
 // for linq queries
 builder.Services.AddDbContext<Atlas_WebContext>(
@@ -101,6 +95,16 @@ builder.Services.AddResponseCompression(
 );
 
 builder.Services.AddMemoryCache();
+
+builder.Services
+    .AddDataProtection()
+    .UseCryptographicAlgorithms(
+        new AuthenticatedEncryptorConfiguration()
+        {
+            EncryptionAlgorithm = EncryptionAlgorithm.AES_256_CBC,
+            ValidationAlgorithm = ValidationAlgorithm.HMACSHA256
+        }
+    );
 
 var cssSettings = new CssBundlingSettings { Minify = true, FingerprintUrls = true, };
 var codeSettings = new CodeBundlingSettings { Minify = true, };
@@ -213,6 +217,22 @@ else
 {
     builder.Services.AddAuthentication(NegotiateDefaults.AuthenticationScheme).AddNegotiate();
 }
+if (builder.Configuration.GetSection("Saml2").Exists())
+{
+    builder.Services.AddHttpClient();
+    builder.Services.BindConfig<Saml2Configuration>(
+        builder.Configuration,
+        "Saml2",
+        (serviceProvider, saml2Configuration) =>
+        {
+            //saml2Configuration.SignAuthnRequest = true;
+            saml2Configuration.SigningCertificate = CertificateUtil.Load(
+                builder.Environment.MapToPhysicalFilePath(
+                    builder.Configuration["Saml2:SigningCertificateFile"]
+                ),
+                builder.Configuration["Saml2:SigningCertificatePassword"],
+                X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.PersistKeySet
+            );
 
 builder.Services.AddAuthorization(
     options =>
@@ -235,6 +255,19 @@ builder.Services.Configure<IISServerOptions>(
         options.AllowSynchronousIO = true;
     }
 );
+
+builder.Services
+    .AddRazorPages()
+    .AddRazorPagesOptions(options =>
+    {
+        options.Conventions.AddPageRoute("/Index/Index", "");
+        options.Conventions.AddPageRoute("/Index/About", "about_analytics");
+        options.Conventions.ConfigureFilter(new IgnoreAntiforgeryTokenAttribute());
+    })
+    .AddRazorRuntimeCompilation();
+builder.Services.AddControllers();
+builder.Services.AddSolrNet<SolrAtlas>(builder.Configuration["solr:atlas_address"]);
+builder.Services.AddSolrNet<SolrAtlasLookups>(builder.Configuration["solr:atlas_lookups_address"]);
 
 var app = builder.Build();
 
@@ -281,20 +314,6 @@ app.UseEndpoints(
     endpoints =>
     {
         endpoints.MapRazorPages();
-    }
-);
-
-app.UseResponseCaching();
-app.Use(
-    async (context, next) =>
-    {
-        context.Response.GetTypedHeaders().CacheControl =
-            new Microsoft.Net.Http.Headers.CacheControlHeaderValue
-            {
-                Public = true,
-                MaxAge = TimeSpan.FromMinutes(20)
-            };
-        await next();
     }
 );
 

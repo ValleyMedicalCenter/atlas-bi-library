@@ -499,7 +499,8 @@ namespace Atlas_Web.Pages.Search
                                                         );
                                                 }
                                             )
-                                            : null
+                                            : null,
+                                    external = x.Type == "external" ? x : null
                                 }
                         )
                         .ToList(),

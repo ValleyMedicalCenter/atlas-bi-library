@@ -101,6 +101,8 @@ namespace Atlas_Web.Pages.Users
                 .ThenInclude(x => x.ReportObjectHierarchyChildReportObjects)
                 .ThenInclude(x => x.ParentReportObject)
                 .ThenInclude(x => x.ReportGroupsMemberships)
+                .Include(x => x.Report)
+                .ThenInclude(x => x.ReportGroupsMemberships)
                 .ToListAsync();
 
             Initiatives = await _context.StarredInitiatives
