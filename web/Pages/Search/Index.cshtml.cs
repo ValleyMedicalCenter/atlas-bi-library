@@ -777,6 +777,10 @@ namespace Atlas_Web.Pages.Search
                 case "ro-fragility":
                     index_type = "fragility_tag";
                     break;
+                    
+                case "Tags":
+                    index_type = "Tags";
+                    break;
 
                 case "maint-log-stat":
                     index_type = "maintenance_log_status";
