@@ -1,0 +1,161 @@
+@page "/approval-request"
+@model Atlas_Web.Pages.ApprovalRequest.IndexModel
+@{
+    ViewData["Title"] = "Submit Document for Approval";
+}
+
+<div class="approval-request-page">
+    <div class="container">
+        <!-- Header Section -->
+        <div class="hero is-light">
+            <div class="hero-body">
+                <div class="container">
+                    <h1 class="title is-3">Submit Document for Approval</h1>
+                    <p class="subtitle">Upload a document to request approval from senior leadership</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="columns is-centered">
+                <div class="column is-8">
+                    
+                    <!-- Error Messages -->
+                    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                    {
+                        <div class="notification is-danger">
+                            <button class="delete" onclick="this.parentElement.style.display='none'"></button>
+                            <strong>Error:</strong> @Model.ErrorMessage
+                        </div>
+                    }
+
+                    <!-- Success Messages -->
+                    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+                    {
+                        <div class="notification is-success">
+                            <button class="delete" onclick="this.parentElement.style.display='none'"></button>
+                            <strong>Success:</strong> @Model.SuccessMessage
+                        </div>
+                    }
+
+                    <!-- File Upload Section -->
+                    @if (string.IsNullOrEmpty(Model.UploadedFileName))
+                    {
+                        <div class="card">
+                            <div class="card-content">
+                                <form method="post" enctype="multipart/form-data" asp-page-handler="Upload" id="uploadForm">
+                                    <div class="field">
+                                        <label class="label">Select Document</label>
+                                        <div class="control">
+                                            <div class="file-upload-area" id="fileUploadArea">
+                                                <div class="file-upload-content">
+                                                    <i class="fas fa-cloud-upload-alt fa-3x has-text-grey-light"></i>
+                                                    <h4 class="title is-5 has-text-grey">Drag and drop your file here</h4>
+                                                    <p class="has-text-grey">or</p>
+                                                    <div class="file has-name">
+                                                        <label class="file-label">
+                                                            <input class="file-input" type="file" name="UploadData.File" id="fileInput" 
+                                                                   accept=".xlsx,.xls,.csv,.txt,.pdf,.docx,.doc">
+                                                            <span class="file-cta">
+                                                                <span class="file-icon">
+                                                                    <i class="fas fa-upload"></i>
+                                                                </span>
+                                                                <span class="file-label">Choose File</span>
+                                                            </span>
+                                                            <span class="file-name" id="fileName">No file selected</span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div class="file-upload-progress" id="uploadProgress" style="display: none;">
+                                                    <progress class="progress is-primary" id="progressBar" value="0" max="100">0%</progress>
+                                                    <p class="has-text-centered">Uploading...</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <p class="help">Supported formats: .xlsx, .xls, .csv, .txt, .pdf, .docx, .doc</p>
+                                    </div>
+
+                                    <div class="field">
+                                        <div class="control">
+                                            <button class="button is-primary" type="submit" id="uploadButton" disabled>
+                                                <span class="icon">
+                                                    <i class="fas fa-upload"></i>
+                                                </span>
+                                                <span>Upload Document</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- Upload Success and PHI Detection Results -->
+                        <div class="card">
+                            <div class="card-content">
+                                <div class="media">
+                                    <div class="media-left">
+                                        <span class="icon is-large has-text-success">
+                                            <i class="fas fa-check-circle fa-2x"></i>
+                                        </span>
+                                    </div>
+                                    <div class="media-content">
+                                        <p class="title is-5">File Uploaded Successfully</p>
+                                        <p class="subtitle is-6">@Model.UploadedFileName</p>
+                                    </div>
+                                </div>
+
+                                <!-- PHI Detection Results -->
+                                @if (Model.HasPHI)
+                                {
+                                    <div class="notification is-warning">
+                                        <span class="icon">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                        </span>
+                                        <strong>PHI Detected in Column Names</strong>
+                                        <div class="content">
+                                            <p>The following columns contain potential PHI indicators:</p>
+                                            <ul>
+                                                @foreach (var column in Model.DetectedPHIColumns)
+                                                {
+                                                    <li><code>@column</code></li>
+                                                }
+                                            </ul>
+                                            <p><em>This information will be shared with the approver.</em></p>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="notification is-success is-light">
+                                        <span class="icon">
+                                            <i class="fas fa-check"></i>
+                                        </span>
+                                        <strong>No PHI-related column names detected</strong>
+                                    </div>
+                                }
+
+                                <!-- Continue Button -->
+                                <div class="field is-grouped is-grouped-right">
+                                    <div class="control">
+                                        <a class="button is-primary is-large" asp-page-handler="ContinueToChat">
+                                            <span>Continue to Approval Request</span>
+                                            <span class="icon">
+                                                <i class="fas fa-arrow-right"></i>
+                                            </span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/approval-request.js" asp-append-version="true"></script>
+}

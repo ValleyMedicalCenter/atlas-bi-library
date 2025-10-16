@@ -1,0 +1,261 @@
+@page "/approval-request/chat"
+@model Atlas_Web.Pages.ApprovalRequest.ChatModel
+@{
+    ViewData["Title"] = "Approval Request Chat";
+}
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="notification is-danger">
+        <strong>Error:</strong> @Model.ErrorMessage
+    </div>
+}
+else
+{
+    <div class="approval-chat-page">
+        <div class="container is-fluid">
+            <div class="columns is-gapless" style="height: 100vh;">
+                
+                <!-- Left Sidebar - Request Context -->
+                <div class="column is-3 has-background-light">
+                    <div class="panel">
+                        <p class="panel-heading">
+                            Request Details
+                        </p>
+                        <div class="panel-block is-block">
+                            <div class="field">
+                                <label class="label is-small">File</label>
+                                <p class="has-text-weight-semibold">@Model.FileName</p>
+                            </div>
+                            <div class="field">
+                                <label class="label is-small">Request ID</label>
+                                <p class="is-family-monospace is-size-7">@Model.RequestId</p>
+                            </div>
+                            <div class="field">
+                                <label class="label is-small">Submitted by</label>
+                                <p>@Model.UserName</p>
+                            </div>
+                            @if (Model.HasPHI)
+                            {
+                                <div class="field">
+                                    <label class="label is-small">PHI Status</label>
+                                    <div class="tags">
+                                        <span class="tag is-warning">
+                                            <span class="icon">
+                                                <i class="fas fa-exclamation-triangle"></i>
+                                            </span>
+                                            <span>PHI Detected</span>
+                                        </span>
+                                    </div>
+                                    <div class="content is-small">
+                                        <p><strong>Detected columns:</strong></p>
+                                        <ul>
+                                            @foreach (var column in Model.DetectedPHIColumns)
+                                            {
+                                                <li><code class="is-size-7">@column</code></li>
+                                            }
+                                        </ul>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="field">
+                                    <label class="label is-small">PHI Status</label>
+                                    <div class="tags">
+                                        <span class="tag is-success">
+                                            <span class="icon">
+                                                <i class="fas fa-check"></i>
+                                            </span>
+                                            <span>No PHI Detected</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        
+                        <!-- Quick Actions -->
+                        <div class="panel-block is-block">
+                            <label class="label is-small">Quick Actions</label>
+                            <div class="buttons are-small">
+                                <button class="button is-light" onclick="sendQuickMessage('What information do I need to provide for approval?')">
+                                    <span class="icon">
+                                        <i class="fas fa-question-circle"></i>
+                                    </span>
+                                    <span>Required Info</span>
+                                </button>
+                                <button class="button is-light" onclick="sendQuickMessage('How long does the approval process typically take?')">
+                                    <span class="icon">
+                                        <i class="fas fa-clock"></i>
+                                    </span>
+                                    <span>Timeline</span>
+                                </button>
+                                <button class="button is-light" onclick="sendQuickMessage('What happens if my request is denied?')">
+                                    <span class="icon">
+                                        <i class="fas fa-info-circle"></i>
+                                    </span>
+                                    <span>Process Info</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Chat Interface -->
+                <div class="column is-9">
+                    <div class="chat-container" style="height: 100vh; display: flex; flex-direction: column;">
+                        
+                        <!-- Chat Header -->
+                        <div class="chat-header has-background-primary has-text-white p-4">
+                            <div class="level is-mobile">
+                                <div class="level-left">
+                                    <div class="level-item">
+                                        <span class="icon">
+                                            <i class="fas fa-robot"></i>
+                                        </span>
+                                        <span class="title is-5 has-text-white ml-2">Approval Assistant</span>
+                                    </div>
+                                </div>
+                                <div class="level-right">
+                                    <div class="level-item">
+                                        <span class="tag is-light">
+                                            <span class="icon">
+                                                <i class="fas fa-circle has-text-success"></i>
+                                            </span>
+                                            <span>Online</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chat Messages -->
+                        <div class="chat-messages p-4" id="chatMessages" style="flex-grow: 1; overflow-y: auto; max-height: calc(100vh - 200px);">
+                            <!-- Welcome message -->
+                            <div class="message-wrapper mb-4">
+                                <div class="message is-info">
+                                    <div class="message-header">
+                                        <span class="icon">
+                                            <i class="fas fa-robot"></i>
+                                        </span>
+                                        <span>Approval Assistant</span>
+                                        <span class="is-size-7">Just now</span>
+                                    </div>
+                                    <div class="message-body">
+                                        <div class="content">
+                                            <p>Hello! I'm here to help you prepare your approval request for <strong>@Model.FileName</strong>.</p>
+                                            <p>I can assist you with:</p>
+                                            <ul>
+                                                <li>Understanding what information to include in your request</li>
+                                                <li>Explaining the approval process and timeline</li>
+                                                <li>Helping you write a compelling justification</li>
+                                                <li>Answering questions about PHI handling and compliance</li>
+                                            </ul>
+                                            <p>What would you like to know about submitting your approval request?</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chat Input -->
+                        <div class="chat-input has-background-light p-4">
+                            <div class="field has-addons">
+                                <div class="control is-expanded">
+                                    <textarea class="textarea" id="messageInput" placeholder="Type your message here..." rows="2" maxlength="1000"></textarea>
+                                </div>
+                                <div class="control">
+                                    <button class="button is-primary is-large" id="sendButton" onclick="sendMessage()">
+                                        <span class="icon">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </span>
+                                        <span>Send</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="field is-grouped is-grouped-right">
+                                <div class="control">
+                                    <button class="button is-success" id="submitApprovalButton" onclick="showSubmissionForm()">
+                                        <span class="icon">
+                                            <i class="fas fa-check-circle"></i>
+                                        </span>
+                                        <span>Submit for Approval</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submission Modal -->
+    <div class="modal" id="submissionModal">
+        <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Submit Approval Request</p>
+                <button class="delete" aria-label="close" onclick="closeSubmissionForm()"></button>
+            </header>
+            <section class="modal-card-body">
+                <form id="submissionForm">
+                    <div class="field">
+                        <label class="label">Request Description *</label>
+                        <div class="control">
+                            <textarea class="textarea" id="requestDescription" placeholder="Describe what you need approval for and why..." rows="4" maxlength="2000" required></textarea>
+                        </div>
+                        <p class="help">Provide a clear, concise description of your request and its business justification.</p>
+                    </div>
+
+                    <div class="field">
+                        <label class="label">Urgency Level</label>
+                        <div class="control">
+                            <div class="select">
+                                <select id="urgencyLevel">
+                                    <option value="Low">Low - No specific deadline</option>
+                                    <option value="Normal" selected>Normal - Standard processing</option>
+                                    <option value="High">High - Needed within 1-2 business days</option>
+                                    <option value="Urgent">Urgent - Needed today</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label class="label">Additional Notes</label>
+                        <div class="control">
+                            <textarea class="textarea" id="additionalNotes" placeholder="Any additional context or requirements..." rows="2" maxlength="1000"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-primary" onclick="submitApprovalRequest()">
+                    <span class="icon">
+                        <i class="fas fa-paper-plane"></i>
+                    </span>
+                    <span>Submit Request</span>
+                </button>
+                <button class="button" onclick="closeSubmissionForm()">Cancel</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Loading Modal -->
+    <div class="modal" id="loadingModal">
+        <div class="modal-background"></div>
+        <div class="modal-content">
+            <div class="box has-text-centered">
+                <div class="loader-wrapper">
+                    <div class="loader"></div>
+                </div>
+                <p class="mt-4">Processing your request...</p>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script src="~/js/approval-chat.js" asp-append-version="true"></script>
+}
